@@ -3,7 +3,7 @@
 import sys
 
 # global variable
-symbols = ["+", "-", "*"]
+SYMBOLS = ["+", "-", "*"]
 
 def get_expression(perm: str)->str:
     expression = f"(((9 {perm[0]} 8) {perm[1]} 7) {perm[2]} 6) {perm[3]} (5 {perm[4]} (4 {perm[5]} (3 {perm[6]} (2 {perm[7]} 1))))"
@@ -14,19 +14,19 @@ def find_permutation(cur_str: str):
         yield cur_str
         return
 
-    for symb in symbols:
+    for symb in SYMBOLS:
         yield from find_permutation(cur_str + symb)
-        #cur_str[-1]
 
 def find_comb(history: dict[str, int], target: int)->str:
     cur_str = ""
     for perm in find_permutation(cur_str):
         if perm in history:
             answer = history[perm]
+            expression = get_expression(perm)
         else:
             expression = get_expression(perm)
             answer = eval(expression)
-            history[expression] = answer
+            history[perm] = answer
         if answer == target:
             return expression
 
