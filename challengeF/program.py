@@ -1,86 +1,81 @@
 #!/usr/bin/env python3
-''' used DP and memoization to calculate the shortest path '''
+''' used min_weight and memoization to calculate the shortest path '''
 import sys
 
-def find_path(matrix: list[list[int]], size: tuple[int, int], end: tuple[int, int], min_matrix: list[list[int]])->list[int]:
+def dp(matrix: list[list[int]], min_weight: list[list[int]], store_path: list[list[int]], rows: int, cols: int):
+    ''' use DP to calculate min_weight at every point '''
+    # min_weight of first col is just matrix first col
+    for i in range(rows):
+        min_weight[i][0] = matrix[i][0]
+
+    for j in range(1, cols):
+        for i in range(rows):
+            # top, middle, bottom
+            potential_rows = sorted([(i - 1 + rows) % rows, i, (i + 1) % rows])
+
+            row_min = sys.maxsize
+
+            for row in potential_rows:
+                if min_weight[row][j-1] < row_min:
+                    row_min = min_weight[row][j-1]
+                    best_row = row
+
+            min_weight[i][j] = matrix[i][j] + row_min
+            store_path[i][j] = best_row
+
+def reconstruct_path(store_path: list[list[int]], find_row: int, cols: int)->list[int]:
+    ''' reconstruct path by backtracking store_path'''
     path = []
 
-    rows, cols = size
-    cols += 1
-
-    row, col = end
-    col += 1
-
-    cur_target = min_matrix[row][col]
-    while cur_target != 0:
-        path.append(row+1)
-        cur_target -= matrix[row][col]
-        row_up = row - 1
-        row_down = row + 1
-        # check if need to goes past top or bottom
-        if row_up < 0:
-            row_up = rows - 1
-        if row_down > rows:
-            row_down = 0
-
-        if cur_target == min_matrix[row_up][col-1]:
-            row = row_up
-        elif cur_target == min_matrix[row_down][col-1]:
-            row = row_down
-        elif cur_target == min_matrix[row][col-1]:
-            pass
-        col -= 1
-
+    current_row = find_row
+    for j in range(cols - 1, -1, -1):
+        path.append(current_row + 1)
+        current_row = store_path[current_row][j]
+    
     path.reverse()
     return path
 
-def find_min_weight(matrix: list[list[int]], size: tuple[int, int])->list[list[int]]:
-    ''' finds the min weight via DP '''
-    min_matrix = [row[:] for row in matrix]
-    rows, cols = size
-    for col in range(1, cols+2):
-        for row in range(0, rows+1):
-            row_up = row - 1
-            row_down = row + 1
-            # check if need to goes past top or bottom
-            if row_up < 0:
-                row_up = rows - 1
-            if row_down > rows:
-                row_down = 0
-
-            min_matrix[row][col] = matrix[row][col] + min(
-                min_matrix[row_up][col-1],
-                min_matrix[row][col-1],
-                min_matrix[row_down][col-1],
-            )
-
-    return min_matrix
-
 def main():
-    for line in sys.stdin:
-        rows, cols = map(int, line.strip().split())
-        target = (rows - 1, cols - 1)
+    ''' parses input '''
+    input_data = sys.stdin.read().split()
 
-        matrix = [[0 for _ in range(cols+1)] for _ in range(rows)]
-        for i in range(rows):
-            new_row = [int(x) for x in next(sys.stdin).strip().split()]
-            matrix[i][1:] = new_row.copy()
+    index = 0
+    while index < len(input_data):
+        try:
+            rows = int(input_data[index])
+            cols = int(input_data[index+1])
+            index += 2
 
-        min_matrix = find_min_weight(matrix, target)
+            matrix = []
+            for i in range(rows):
+                input_line = []
+                for j in range(cols):
+                    input_line.append(int(input_data[index]))
+                    index += 1
+                matrix.append(input_line)
 
-        min = sys.maxsize
-        min_row = 0
-        for i in range(rows):
-            if min_matrix[i][cols] < min:
-                min_row = i + 1
-                min = min_matrix[i][cols]
-
-        path = find_path(matrix, target, (min_row-1, cols-1), min_matrix)
+        except (ValueError, IndexError):
+            break
         
-        print(min)
-        #print(min_matrix)
-        path = [str(x) for x in path]
-        print(" ".join(path))
+
+        min_weight = [[0] * cols for _ in range(rows)]
+        # stores previous row
+        store_path = [[0] * cols for _ in range(rows)]
+
+        dp(matrix, min_weight, store_path, rows, cols)
+        
+        # find row of min_weight
+        min_total_weight = sys.maxsize
+        find_row = -1
+        for i in range(rows):
+            if min_weight[i][cols-1] < min_total_weight:
+                min_total_weight = min_weight[i][cols-1]
+                find_row = i
+
+        path = reconstruct_path(store_path, find_row, cols)
+        
+        print(min_total_weight)
+        print(' '.join(map(str, path)))
 
 if __name__ == "__main__":
     main()
