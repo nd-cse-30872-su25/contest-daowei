@@ -5,15 +5,13 @@ from collections import defaultdict, deque
 
 # Types
 # key: tuple of parent name, list of all their children
-Family = defaultdict[str, list[str]]
-# Key: Generation level. E.g 0. is eldest. each has a list of all members
-Generations = defaultdict[int, list[str]]
+Family = dict[str, list[str]]
 
 def find_presents(family: Family, parent_pairs: dict, person: str, childs_parent: dict)->set[str]:
     presents = set()
     if person in childs_parent:
         person_parent = childs_parent[person]
-    elif parent_pairs[person] in childs_parent:
+    elif parent_pairs.get(person) in childs_parent:
         person_parent = childs_parent[parent_pairs[person]]
     else:
         return presents
@@ -22,17 +20,18 @@ def find_presents(family: Family, parent_pairs: dict, person: str, childs_parent
     # remove person
     try:
         person_sibling.remove(person)
-    except ValueError:
+    except (ValueError, IndexError):
         pass
     # remove spouse
     try:
-        person_sibling.remove(parent_pairs[person])
+        if parent_pairs.get(person) is not None:
+            person_sibling.remove(parent_pairs[person])
     except (ValueError, IndexError):
         pass
 
-    for person in person_sibling:
-        if person in family:
-            for niece in family[person]:
+    for sibling in person_sibling:
+        if sibling in family:
+            for niece in family[sibling]:
                 presents.add(niece)
 
     return presents
@@ -44,7 +43,7 @@ def main():
         if num_fams == 0:
             break
         family: Family = defaultdict(list)
-        parent_pairs = defaultdict()
+        parent_pairs = {}
         gift_givers = []
 
         first_gen = None
@@ -61,7 +60,7 @@ def main():
             family[parent2] = children
 
         # dict of child's parent relationship: key(child) value(parent)
-        childs_parent = defaultdict()
+        childs_parent = {}
         for key, value in family.items():
             for child in value:
                 if child not in childs_parent:
@@ -80,7 +79,7 @@ def main():
             presents = list(presents)
             presents.sort()
             if len(presents) >0:
-                print(f"{person} needs to buy gifts for: {", ".join(presents)}")
+                print(f'{person} needs to buy gifts for: {", ".join(presents)}')
             else:
                 print(f"{person} does not need to buy gifts")
 
